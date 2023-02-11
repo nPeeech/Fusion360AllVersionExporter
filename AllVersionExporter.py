@@ -294,6 +294,7 @@ class ExporterCommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
 
             inputs.addBoolValueInput('unhide_all', 'Unhide All Bodies', True, '', True)
             inputs.addBoolValueInput('save_sketches', 'Save Sketches as DXF', True, '', False)
+            # TODO すべてのversionを保存するか否かを選択するチェックボックスを設置する
         except:
             adsk.core.Application.get().userInterface.messageBox(traceback.format_exc())
 
