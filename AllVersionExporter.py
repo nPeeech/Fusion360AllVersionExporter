@@ -312,6 +312,7 @@ def selected(inputs):
 class ExporterCommandExecuteHandler(adsk.core.CommandEventHandler):
     def notify(self, args):
         try:
+            start_dt = datetime.now()
             inputs = args.command.commandInputs
 
             app = adsk.core.Application.get()
@@ -327,19 +328,22 @@ class ExporterCommandExecuteHandler(adsk.core.CommandEventHandler):
             )
 
             counter = main(ctx)
-
-            ui.messageBox('\n'.join((
+            end_dt = datetime.now()
+            result = '\n'.join((
                 f'Saved {counter.saved} files',
                 f'Skipped {counter.skipped} files',
                 f'Encountered {counter.errored} errors',
-                f'Log file is at {log_file}'
-            )))
+                f'Log file is at {log_file}',
+                f'Elapsed time: {end_dt - start_dt}'))
+            log("\n\n========Result========")
+            log(result)
+            ui.messageBox(result)
 
         except:
             tb = traceback.format_exc()
             adsk.core.Application.get().userInterface.messageBox(f'Log file is at {log_file}\n{tb}')
             if log_fh is not None:
-                log(f'Got top level exception\n{tb}')    
+                log(f'Got top level exception\n{tb}')
         finally:
             if log_fh is not None:
                 log_fh.close()
