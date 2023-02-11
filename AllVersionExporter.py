@@ -138,7 +138,7 @@ def sanitize_filename(name: str) -> str:
 def export_filename(ctx: Ctx, format: Format, file):
     sanitized = sanitize_filename(file.name)
     name = f'{sanitized}_v{file.versionNumber}.{format.value}'
-    return ctx.folder / name
+    return ctx.folder / sanitized / name
 
 def export_sketches(ctx, component):
     counter = Counter()
