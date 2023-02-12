@@ -207,7 +207,7 @@ def export_metadata(ctx: Ctx, file: adsk.core.DataFile) ->Counter:
     output_path = ctx.folder / sanitized / name
     if not output_path.exists():
         counter = Counter(saved=1)
-        with open(output_path, 'w+'):
+        with open(output_path, 'w'):
             pass
         log(f'Created {output_path}')
 
@@ -242,18 +242,18 @@ def visit_file(ctx: Ctx, file: adsk.core.DataFile) -> Counter:
         doc.open()
         counter += export_sketches(ctx.extend(sanitize_filename(doc.rootComponent.name)), doc.rootComponent)
 
-    try:
-        counter += export_metadata(ctx, file)
-    except Exception:
-        counter.errored += 1
-        log(traceback.format_exc())
-
     for format in ctx.formats:
         try:
             counter += export_file(ctx, format, file, doc)
         except Exception:
             counter.errored += 1
             log(traceback.format_exc())
+
+    try:
+        counter += export_metadata(ctx, file)
+    except Exception:
+        counter.errored += 1
+        log(traceback.format_exc())
 
     doc.close()
     return counter
