@@ -200,7 +200,34 @@ def export_file(ctx: Ctx, format: Format, file, doc: LazyDocument) -> Counter:
 
     return Counter(saved=1)
 
-def visit_file(ctx: Ctx, file) -> Counter:
+def export_metadata(ctx: Ctx, file: adsk.core.DataFile) ->Counter:
+    counter = Counter()
+    sanitized = sanitize_filename(file.name)
+    name = f'{sanitized}_metadata.txt'
+    output_path = ctx.folder / sanitized / name
+    if not output_path.exists():
+        counter = Counter(saved=1)
+        with open(output_path, 'w+'):
+            pass
+        log(f'Created {output_path}')
+
+    with open(output_path, 'r') as f:
+        lines = f.readlines()
+        lines_strip = [line.strip() for line in lines]
+        if f'Version: {file.versionNumber}'.strip() in lines_strip:
+            return counter
+
+    with open(output_path, 'a+') as f:
+        f.write("\n".join((
+            f'Version: {file.versionNumber}',
+            f'\tcreated: {datetime.fromtimestamp(file.dateCreated)}',
+            f'\tdescription: {file.description}\n',
+        )))
+        f.flush()
+        log(f'Updated {output_path}')
+    return counter
+
+def visit_file(ctx: Ctx, file: adsk.core.DataFile) -> Counter:
     log(f'Visiting file {file.name} v{file.versionNumber} . {file.fileExtension}')
 
     if file.fileExtension != 'f3d':
@@ -214,6 +241,12 @@ def visit_file(ctx: Ctx, file) -> Counter:
     if ctx.save_sketches:
         doc.open()
         counter += export_sketches(ctx.extend(sanitize_filename(doc.rootComponent.name)), doc.rootComponent)
+
+    try:
+        counter += export_metadata(ctx, file)
+    except Exception:
+        counter.errored += 1
+        log(traceback.format_exc())
 
     for format in ctx.formats:
         try:
