@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import hashlib
 import re
 
+# TODO 文法
+
 log_file = None
 log_fh = None
 
@@ -46,6 +48,7 @@ class Ctx(NamedTuple):
     projects: Set[str]
     unhide_all: bool
     save_sketches: bool
+    save_all_versions: bool
 
     def extend(self, other):
         return self._replace(folder=self.folder / other)
@@ -163,6 +166,7 @@ def export_sketches(ctx, component):
     return counter
 
 def export_file(ctx: Ctx, format: Format, file, doc: LazyDocument) -> Counter:
+    # TODO コメントも保存する
     output_path = export_filename(ctx, format, file)
     if output_path.exists():
         log(f'{output_path} already exists, skipping')
@@ -225,12 +229,15 @@ def visit_file(ctx: Ctx, file) -> Counter:
 
 def visit_file_wrapper(ctx: Ctx, file: adsk.core.DataFile) -> Counter:
     log(f'Visiting file {file.name}.{file.fileExtension}, which has {file.versionNumber} versions.')
-    counter = Counter()
 
-    for specificVersionFile in file.versions.asArray():
-        counter += visit_file(ctx, specificVersionFile)
+    if(ctx.save_all_versions):
+        counter = Counter()
+        for specificVersionFile in file.versions.asArray():
+            counter += visit_file(ctx, specificVersionFile)
+        return counter
+    else:
+        return visit_file(ctx, file)
 
-    return counter
 
 
 def visit_folder(ctx: Ctx, folder) -> Counter:
@@ -294,7 +301,7 @@ class ExporterCommandCreatedEventHandler(adsk.core.CommandCreatedEventHandler):
 
             inputs.addBoolValueInput('unhide_all', 'Unhide All Bodies', True, '', True)
             inputs.addBoolValueInput('save_sketches', 'Save Sketches as DXF', True, '', False)
-            # TODO すべてのversionを保存するか否かを選択するチェックボックスを設置する
+            inputs.addBoolValueInput('save_all_versions', 'Save all versions', True, '', True)
         except:
             adsk.core.Application.get().userInterface.messageBox(traceback.format_exc())
 
@@ -325,6 +332,7 @@ class ExporterCommandExecuteHandler(adsk.core.CommandEventHandler):
                 projects = set(selected(inputs.itemById('projects').listItems)),
                 unhide_all = inputs.itemById('unhide_all').value,
                 save_sketches = inputs.itemById('save_sketches').value,
+                save_all_versions= inputs.itemById('save_all_versions').value,
             )
 
             counter = main(ctx)
